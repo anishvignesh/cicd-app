@@ -1,9 +1,13 @@
-
 pipeline {
     agent any
 
+    environment {
+        IMAGE = "cicd-app:${BUILD_NUMBER}"
+    }
+
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                 credentialsId: 'github-creds',
@@ -13,16 +17,19 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t cicd-app:${BUILD_NUMBER} .'
+                sh "docker build -t $IMAGE ."
             }
         }
 
-        stage('Run Container') {
+        stage('Stop Old Container') {
             steps {
-                sh '''
-                docker rm -f cicd-container || true
-                docker run -d -p 3000:3000 --name cicd-container cicd-app:${BUILD_NUMBER}
-                '''
+                sh "docker rm -f cicd-container || true"
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh "docker run -d -p 3000:3000 --name cicd-container $IMAGE"
             }
         }
     }
